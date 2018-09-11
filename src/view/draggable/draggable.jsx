@@ -46,13 +46,19 @@ export const zIndexOptions: ZIndexOptions = {
   dropAnimating: 4500,
 };
 
-const getTranslate = (offset: Position): ?string => {
+const getTranslate = (offset: Position, axisLock: string): ?string => {
   // we do not translate to origin
   // we simply clear the translate
   if (isEqual(offset, origin)) {
     return null;
   }
-  return `translate(${offset.x}px, ${offset.y}px)`;
+  if (!axisLock) {
+    return `translate(${offset.x}px, ${offset.y}px)`;
+  } else if (axisLock === 'x') {
+    return `translateX(${offset.x}px`;
+  } else {
+    return `translateY(${offset.y}px)`;
+  }
 };
 
 const getSpeed = (
@@ -172,6 +178,7 @@ export default class Draggable extends Component<Props> {
       change: Position,
       dimension: DraggableDimension,
       isDropAnimating: boolean,
+      axisLock: string,
     ): DraggingStyle => {
       const box: BoxModel = dimension.client;
       const style: DraggingStyle = {
@@ -195,7 +202,7 @@ export default class Draggable extends Component<Props> {
           ? zIndexOptions.dropAnimating
           : zIndexOptions.dragging,
         // Moving in response to user input
-        transform: getTranslate(change),
+        transform: getTranslate(change, axisLock),
 
         // ## Performance
         pointerEvents: 'none',
@@ -208,9 +215,10 @@ export default class Draggable extends Component<Props> {
     (
       current: Position,
       shouldAnimateDisplacement: boolean,
+      axisLock: string,
     ): NotDraggingStyle => {
       const style: NotDraggingStyle = {
-        transform: getTranslate(current),
+        transform: getTranslate(current, axisLock),
         // use the global animation for animation - or opt out of it
         transition: shouldAnimateDisplacement ? null : 'none',
         // transition: css.outOfTheWay,
@@ -227,6 +235,7 @@ export default class Draggable extends Component<Props> {
       shouldAnimateDisplacement: boolean,
       dimension: ?DraggableDimension,
       dragHandleProps: ?DragHandleProps,
+      axisLock: string,
     ): Provided => {
       const useDraggingStyle: boolean = isDragging || isDropAnimating;
 
@@ -239,7 +248,7 @@ export default class Draggable extends Component<Props> {
 
         // Need to position element in original visual position. To do this
         // we position it without
-        return this.getDraggingStyle(change, dimension, isDropAnimating);
+        return this.getDraggingStyle(change, dimension, isDropAnimating, axisLock);
       })();
 
       const provided: Provided = {
@@ -277,6 +286,7 @@ export default class Draggable extends Component<Props> {
       draggingOver,
       shouldAnimateDisplacement,
       children,
+      axisLock,
     } = this.props;
 
     const child: ?Node = children(
@@ -287,6 +297,7 @@ export default class Draggable extends Component<Props> {
         shouldAnimateDisplacement,
         dimension,
         dragHandleProps,
+        axisLock
       ),
       this.getSnapshot(isDragging, isDropAnimating, draggingOver),
     );
@@ -320,7 +331,7 @@ export default class Draggable extends Component<Props> {
       isDropAnimating,
       isDragDisabled,
       shouldAnimateDragMovement,
-      disableInteractiveElementBlocking,
+      disableInteractiveElementBlocking
     } = this.props;
     const droppableId: DroppableId = this.context[droppableIdKey];
     const type: TypeId = this.context[droppableTypeKey];
